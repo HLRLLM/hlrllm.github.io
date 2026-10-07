@@ -1,0 +1,6 @@
+.DS_Store
+.idea/
+*.pptx
+*.aux
+*.log
+node_modules/

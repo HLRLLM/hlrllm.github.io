@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HLR-LLM: Hear, Localize, and Reason</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="description" content="Hear, Localize, and Reason: Spatially Aware Scene Understanding for Audio-visual LLMs. HLR-AVSceneQA benchmark and HLR-LLM model.">
+  <meta name="keywords" content="spatial audio, audio-visual LLM, binaural audio, scene understanding, benchmark, sound source localization, chain-of-thought">
+
+  <!-- TODO: replace with your own Open Graph image URL once the site is live -->
+  <meta property="og:title" content="Hear, Localize, and Reason: Spatially Aware Scene Understanding for Audio-visual LLMs">
+  <meta property="og:description" content="HLR-AVSceneQA, a benchmark for spatial audio-visual scene understanding, and HLR-LLM, a spatially aware AV-LLM with a binaural audio branch.">
+  <meta property="og:image" content="./static/images/teaser.png">
+  <meta property="og:type" content="website">
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <!-- Nerfies/Bulma stack -->
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+
+  <style>
+    .container.is-max-desktop { max-width: 1200px !important; }
+
+    body { font-family: "Noto Sans", sans-serif; color: #222; }
+
+    .publication-title { font-size: 2.6rem; font-weight: 700; line-height: 1.3; }
+    .publication-venue {
+      display: inline-block; margin-top: 0.9rem; padding: 0.25rem 0.9rem;
+      border: 1px solid #d0d0d0; border-radius: 999px;
+      font-size: 1rem; color: #555; letter-spacing: 0.02em;
+    }
+    .publication-authors { font-size: 1.35rem; margin-top: 0.9rem; }
+    .publication-authors .author-block { white-space: nowrap; }
+    .publication-affil { font-size: 1.1rem; color: #555; margin-top: 0.4rem; }
+    .publication-links { margin-top: 1.4rem; }
+    .publication-links .button { margin: 0.25rem; }
+
+    .teaser img { width: 100%; height: auto; border-radius: 6px; }
+    .teaser .subtitle { margin-top: 1.1rem; font-size: 1.05rem; line-height: 1.7; color: #333; }
+
+    .section-title {
+      font-size: 1.9rem; font-weight: 700; text-align: center; margin-bottom: 1.6rem;
+    }
+    .content p { font-size: 1.05rem; line-height: 1.8; }
+
+    .figure-block { margin: 2rem 0; }
+    .figure-block img { width: 100%; height: auto; border-radius: 6px; }
+    .figure-caption {
+      margin-top: 0.8rem; font-size: 0.95rem; line-height: 1.65; color: #444; text-align: left;
+    }
+
+    /* Key-number strip */
+    .stat-grid {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 1.5rem 0 0.5rem;
+    }
+    .stat-card {
+      flex: 1 1 180px; max-width: 260px; padding: 1.1rem 0.8rem;
+      border: 1px solid #e4e4e4; border-radius: 8px; background: #fafafa; text-align: center;
+    }
+    .stat-card .stat-value { font-size: 1.7rem; font-weight: 700; color: #1f2d5a; line-height: 1.2; }
+    .stat-card .stat-label { font-size: 0.9rem; color: #666; margin-top: 0.35rem; }
+
+    /* Tables: must scroll horizontally on narrow screens, never the page */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 0.6rem; }
+    table.result-table { font-size: 0.86rem; white-space: nowrap; }
+    table.result-table th { text-align: center; vertical-align: middle; }
+    table.result-table td { text-align: center; }
+    table.result-table td.is-left, table.result-table th.is-left { text-align: left; }
+    table.result-table tr.is-ours { background: #eef3ff; font-weight: 600; }
+    table.result-table tr.group-head td {
+      background: #f6f6f6; font-style: italic; color: #555; text-align: left;
+    }
+    table.result-table tr.is-chance td { color: #888; font-style: italic; }
+
+    /* Task taxonomy */
+    .task-family { margin-bottom: 1.2rem; }
+    .task-family h4 {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;
+      padding-left: 0.6rem; border-left: 4px solid #1f2d5a;
+    }
+    .task-list { font-size: 0.98rem; line-height: 1.75; }
+    .task-list b { color: #1f2d5a; }
+
+    .qa-box {
+      border: 1px solid #e4e4e4; border-left: 4px solid #1f2d5a; border-radius: 6px;
+      background: #fafbfd; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 0.97rem; line-height: 1.7;
+    }
+    .qa-box .q { font-weight: 700; }
+    .qa-box .a { color: #1f2d5a; }
+
+    pre.bibtex {
+      background: #f5f5f5; padding: 1.1rem; border-radius: 6px;
+      font-size: 0.88rem; overflow-x: auto;
+    }
+
+    .todo-note {
+      background: #fff8e1; border: 1px solid #f0d58c; border-radius: 6px;
+      padding: 0.9rem 1.1rem; font-size: 0.95rem; color: #6b5a1e; margin-bottom: 1.5rem;
+    }
+
+    @media screen and (max-width: 768px) {
+      .publication-title { font-size: 1.85rem; }
+      .publication-authors { font-size: 1.05rem; }
+      .section-title { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================ HERO ============================ -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop has-text-centered">
+      <h1 class="publication-title">
+        Hear, Localize, and Reason: <br> Spatially Aware Scene Understanding for Audio-visual LLMs
+      </h1>
+
+      <div class="publication-venue">NeurIPS 2026 Submission</div>
+
+      <!--
+        TODO: fill in the real author list. Template (copy one block per author):
+
+        <span class="author-block">
+          <a href="https://example.com/">Author Name</a><sup>1</sup>,
+        </span>
+      -->
+      <div class="publication-authors">
+        <span class="author-block">Anonymous Authors</span>
+      </div>
+
+      <!-- TODO: fill in affiliations, e.g. <sup>1</sup>POSTECH &middot; <sup>2</sup>KAIST -->
+      <div class="publication-affil">
+        Affiliations to be announced
+      </div>
+
+      <div class="publication-links">
+        <!-- TODO: replace href="#" with the real URLs once available -->
+        <span class="link-block">
+          <a class="button is-dark is-rounded" href="#">
+            <span class="icon"><i class="ai ai-arxiv"></i></span>
+            <span>arXiv</span>
+          </a>
+        </span>
+        <span class="link-block">
+          <a class="button is-dark is-rounded" href="#">
+            <span class="icon"><i class="fas fa-file-pdf"></i></span>
+            <span>Paper</span>
+          </a>
+        </span>
+        <span class="link-block">
+          <a class="button is-dark is-rounded" href="#">
+            <span class="icon"><i class="fab fa-github"></i></span>
+            <span>Code</span>
+          </a>
+        </span>
+        <span class="link-block">
+          <a class="button is-dark is-rounded" href="#">
+            <span class="icon"><i class="far fa-images"></i></span>
+            <span>HLR-AVSceneQA</span>
+          </a>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TEASER ============================ -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body has-text-centered teaser">
+      <img src="./static/images/teaser.png" alt="Overview of HLR-AVSceneQA: spatial hearing, spatial grounding, and spatial relational reasoning">
+      <p class="subtitle">
+        <b>HLR-AVSceneQA</b> is a comprehensive benchmark for spatial audio-visual scene understanding,
+        organized around a <i>hear&ndash;localize&ndash;reason</i> hierarchy:
+        <b>spatial hearing</b> recognizes <i>what</i> is heard,
+        <b>spatial grounding</b> localizes <i>where</i> it comes from in egocentric and allocentric views, and
+        <b>spatial relational reasoning</b> infers <i>how</i> sources relate to visible, hidden, or nearby objects.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ABSTRACT ============================ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">Abstract</h2>
+    <div class="content has-text-justified">
+      <p>
+        Audio-visual large language models (AV-LLMs) have made strong progress in multimodal
+        understanding, but they typically treat audio as monaural semantic content and therefore
+        struggle to reason about <i>where</i> sounds originate and how they relate to the visual scene.
+        Recent spatial audio-visual studies address parts of this problem, but often focus on specific
+        abilities, such as spatial correspondence or direction and distance reasoning. In this paper,
+        we propose <b>HLR-AVSceneQA</b>, a comprehensive benchmark for spatial audio-visual scene
+        understanding. HLR-AVSceneQA evaluates whether models can jointly <i>hear</i>, <i>localize</i>,
+        and <i>reason</i> by recognizing what is heard, grounding where it comes from in egocentric and
+        allocentric views, and inferring how sound sources relate to visible, hidden, or nearby objects.
+        We further introduce <b>HLR-LLM</b>, which extends a strong audio-visual foundation model with a
+        binaural spatial audio branch. HLR-LLM is trained with a three-stage curriculum, applying
+        chain-of-thought supervision in the final stage to help the model learn structured multi-step
+        spatial reasoning. Experiments show that existing AV-LLMs remain limited in spatial grounding
+        and relational reasoning, while HLR-LLM substantially improves spatial audio-visual scene
+        understanding without sacrificing semantic audio-visual perception.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CONTRIBUTIONS ============================ -->
+<section class="section" style="padding-top: 0;">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">Contributions</h2>
+    <div class="content">
+      <ul>
+        <li>
+          We introduce <b>HLR-AVSceneQA</b>, a unified benchmark for AV-LLMs that evaluates spatial
+          hearing, egocentric/allocentric grounding, and spatial relational reasoning.
+        </li>
+        <li>
+          We propose <b>HLR-LLM</b>, a spatially aware AV-LLM that augments a strong foundation model
+          with spatial audio to improve grounding and reasoning while preserving semantic perception.
+        </li>
+        <li>
+          We demonstrate that <b>compact chain-of-thought curriculum training</b> improves multi-step
+          spatial reasoning by guiding the model through auditory, spatial, and visual intermediate cues.
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ BENCHMARK ============================ -->
+<section class="section" style="background: #fbfbfd;">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">HLR-AVSceneQA Benchmark</h2>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">175,061</div>
+        <div class="stat-label">training QA pairs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">21,808</div>
+        <div class="stat-label">test QA pairs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">94,519</div>
+        <div class="stat-label">CoT-augmented pairs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">12</div>
+        <div class="stat-label">tasks in 3 families</div>
+      </div>
+    </div>
+
+    <div class="content has-text-justified" style="margin-top: 2rem;">
+      <p>
+        Collecting real-world data with accurate spatial annotations is difficult, so we build the
+        benchmark with a <b>two-stage simulator-based pipeline</b>. Stage&nbsp;I synthesizes spatial
+        audio-visual scenes with structured metadata, and Stage&nbsp;II generates QA pairs from that
+        metadata. Unlike panoramic-input settings, HLR-AVSceneQA uses <b>normal-field-of-view
+        egocentric observations</b>, requiring models to reason about visible, occluded, and off-screen
+        sources from partial visual evidence.
+      </p>
+    </div>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 1.6rem 0 0.8rem;">
+      Stage&nbsp;I &mdash; Spatial audio-visual scene synthesis
+    </h3>
+    <div class="content has-text-justified">
+      <ul>
+        <li>
+          <b>Scene and acoustic simulator.</b> SoundSpaces&nbsp;2.0 renders geometry-aware room
+          acoustics and spatializes dry monaural clips into binaural audio. 3D environments come from
+          HM3DSem (216 indoor spaces, 3,100 rooms with dense semantics); 145 scenes for training and
+          36 for testing.
+        </li>
+        <li>
+          <b>Audio source curation.</b> Non-speech sounds from VGGSound (310+ classes), manually
+          filtered to remove classes that are not naturally grounded to a single indoor object, plus
+          ImageBind-based text-audio similarity filtering. Speech comes from LibriSpeech for far-field ASR.
+        </li>
+        <li>
+          <b>Visual object curation.</b> A mesh pool of sounding objects from Objaverse-XL, supplemented
+          with off-the-shelf 2D/3D generation models for under-covered categories &mdash; roughly 81 meshes
+          per category for training and 35 for testing, all manually checked.
+        </li>
+        <li>
+          <b>Scene assembly.</b> 2&ndash;6 candidate meshes are inserted per room and up to two are
+          activated as sound sources. Some audio-object pairs are semantically matched, others are
+          spatially aligned but semantically mismatched. Sources may be fully visible, occluded,
+          in an adjacent room, or outside the field of view. Final RGB is rendered at
+          1280&times;720 with a 90&deg; horizontal FoV, paired with binaural audio.
+        </li>
+      </ul>
+    </div>
+
+    <div class="figure-block">
+      <img src="./static/images/data_example.png" alt="Examples of rendered scenes and structured metadata">
+      <p class="figure-caption">
+        <b>Examples of rendered scenes and metadata.</b> Our dataset covers diverse scenarios that
+        require spatially aware audio-visual reasoning, including (a) sound sources occluded by objects
+        and (b) ambiguous sound sources among same-category instances. Each sample is summarized with
+        structured scene metadata. Yellow denotes existing scene objects, pink denotes inserted objects,
+        blue denotes sounding objects, and green denotes the agent.
+      </p>
+    </div>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 2rem 0 0.8rem;">
+      Stage&nbsp;II &mdash; Task design and QA construction
+    </h3>
+
+    <div class="task-family">
+      <h4>1 &nbsp;Spatial hearing</h4>
+      <div class="task-list">
+        <b>Sound event recognition</b> &mdash; identify audible event categories. &nbsp;&middot;&nbsp;
+        <b>Far-field ASR</b> &mdash; transcribe spoken content from far-field audio.
+      </div>
+    </div>
+
+    <div class="task-family">
+      <h4>2 &nbsp;Spatial grounding</h4>
+      <div class="task-list">
+        <b>Egocentric direction / distance</b> &mdash; localize the source relative to the agent's current viewpoint. &nbsp;&middot;&nbsp;
+        <b>Allocentric direction / distance</b> &mdash; localize it from a transformed viewpoint, defined by
+        standing at a reference object and facing another object.
+      </div>
+    </div>
+
+    <div class="task-family">
+      <h4>3 &nbsp;Spatial relational reasoning</h4>
+      <div class="task-list">
+        <b>Visibility</b> &mdash; is the source visible from the current view? &nbsp;&middot;&nbsp;
+        <b>Correspondence</b> &mdash; which visible object is spatially aligned with the sound (may be
+        semantically mismatched, or <i>None</i>)? &nbsp;&middot;&nbsp;
+        <b>Hidden-source localization</b> &mdash; is a non-visible source behind an object, in an adjacent
+        room, or outside the field of view? &nbsp;&middot;&nbsp;
+        <b>Loudness change</b> &mdash; does the source get louder or quieter after moving to a target object? &nbsp;&middot;&nbsp;
+        <b>Proximity</b> &mdash; which candidate object is nearest to the source? &nbsp;&middot;&nbsp;
+        <b>Scene captioning</b> &mdash; summarize sound events, directions, and visibility states.
+      </div>
+    </div>
+
+    <div class="qa-box">
+      <div style="font-weight:700; margin-bottom:0.6rem; color:#1f2d5a;">
+        Chain-of-thought supervision example
+      </div>
+      <div><span class="q">Q:</span> Given the sound, where is its source located?</div>
+      <div style="margin-top:0.4rem;">
+        <span class="q">A:</span>
+        <span class="a">
+          The sound event is a hair dryer drying, arriving from the front-left direction and 2.7 meters
+          away. The hair dryer is not visible because it is occluded by the armchair. Therefore, the
+          source is hidden behind the armchair.
+        </span>
+      </div>
+    </div>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 2rem 0 0.8rem;">
+      Evaluation scope compared with existing benchmarks
+    </h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th class="is-left">Benchmark</th>
+            <th>A+V</th>
+            <th>Multi-<br>source</th>
+            <th>Far-field<br>ASR</th>
+            <th>Sound<br>event</th>
+            <th>Ego.</th>
+            <th>Allo.</th>
+            <th>AV<br>Corr.</th>
+            <th>Cross-<br>room</th>
+            <th>Hidden<br>Source</th>
+            <th>Proximity</th>
+            <th>AV<br>Caption</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="is-left">BAT</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+          <tr><td class="is-left">SpatialWhisper</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+          <tr><td class="is-left">Hear You Are</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+          <tr><td class="is-left">SAVVY-Bench</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+          <tr><td class="is-left">SpatialSceneQA</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+          <tr class="is-ours"><td class="is-left">HLR-AVSceneQA (Ours)</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      <b>Evaluation scope of spatial audio and audio-visual benchmarks.</b> A+V denotes audio-visual
+      input; Multi-source denotes simultaneous sound sources; Ego./Allo. denote egocentric/allocentric
+      reasoning; Corr. denotes audio-visual correspondence. Cross-room, Hidden Source, Proximity, and
+      AV Caption denote reasoning about across-room sources, invisible or occluded sources,
+      nearest-object relations, and open-ended audio-visual captioning.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ METHOD ============================ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">HLR-LLM</h2>
+
+    <div class="figure-block">
+      <img src="./static/images/architecture.png" alt="HLR-LLM architecture and three-stage training curriculum">
+      <p class="figure-caption">
+        <b>Architecture and training curriculum of HLR-LLM.</b> (a) HLR-LLM augments a strong AV-LLM
+        with a binaural spatial audio branch, enabling the language model to jointly attend to text,
+        visual, downmixed monaural audio, and binaural spatial audio tokens. (b) The model is trained
+        through a three-stage curriculum: spatial audio alignment, spatial audio-visual instruction
+        tuning, and final-stage CoT tuning for structured spatial reasoning.
+      </p>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        HLR-LLM is built on <b>Qwen2.5-Omni</b> and adds a spatial audio pathway alongside the existing
+        visual and monaural audio branches. A binaural signal is encoded by a frozen spatial audio
+        encoder and mapped into the language model embedding space by a trainable MLP projector. A new
+        media token, <code>&lt;spatial_audio&gt;</code>, marks the placeholder positions that are
+        replaced with the projected spatial audio tokens, giving the input sequence
+        <code>X = [E(q), Z<sub>vis</sub>, Z<sub>aud</sub>, Z<sub>spa</sub>]</code>.
+        The monaural branch preserves semantic hearing ability, while the spatial branch supplies
+        direction- and distance-sensitive cues for grounding and reasoning.
+      </p>
+    </div>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 1.6rem 0 0.8rem;">Three-stage curriculum</h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th class="is-left">Training data &rarr; Objective</th>
+            <th># Samples</th>
+            <th class="is-left">Trainable</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="is-left">Spatial audio-only QA &rarr; Spatial audio alignment</td>
+            <td>514k</td>
+            <td class="is-left">Spatial projector</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="is-left">HLR-AVSceneQA &rarr; Spatial audio-visual instruction tuning</td>
+            <td>175k</td>
+            <td class="is-left">Spatial projector + LoRA</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="is-left">HLR-AVSceneQA-CoT &rarr; Chain-of-thought tuning</td>
+            <td>94.5k</td>
+            <td class="is-left">Spatial projector + LoRA</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      All visual, monaural audio, and spatial audio encoders stay frozen throughout training.
+      LoRA uses rank 16, alpha 16, dropout 0.05, learning rate 2&times;10<sup>&minus;4</sup>, and weight
+      decay 0.01; 2 epochs on four NVIDIA A6000 GPUs with a per-device batch size of 4.
+      Binaural audio is sampled at 32&nbsp;kHz with a 1024 window, 320 hop, and 128 mel bins.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ RESULTS ============================ -->
+<section class="section" style="background: #fbfbfd;">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">Results</h2>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 0 0 0.8rem;">
+      Spatial hearing and spatial grounding
+    </h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th class="is-left" rowspan="2">Model</th>
+            <th rowspan="2">Modality</th>
+            <th colspan="2">Spatial Hearing</th>
+            <th colspan="2">Egocentric Grounding</th>
+            <th colspan="2">Allocentric Grounding</th>
+          </tr>
+          <tr>
+            <th>Sound (Acc. &uarr;)</th>
+            <th>Speech (WER &darr;)</th>
+            <th>Direction</th>
+            <th>Distance</th>
+            <th>Direction</th>
+            <th>Distance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="is-chance"><td class="is-left">Random chance</td><td>&ndash;</td><td>10.00</td><td>&ndash;</td><td>12.5</td><td>5.00</td><td>12.5</td><td>5.00</td></tr>
+          <tr class="group-head"><td colspan="8">Zero-shot models</td></tr>
+          <tr><td class="is-left">MiniCPM-o-v2.6</td><td>V+M</td><td>35.07</td><td>142.7</td><td>14.27</td><td>11.86</td><td>12.58</td><td>15.25</td></tr>
+          <tr><td class="is-left">VideoLLaMA2</td><td>V+M</td><td>54.58</td><td>113.4</td><td>11.91</td><td>7.57</td><td>15.56</td><td>7.00</td></tr>
+          <tr><td class="is-left">Video-SALMONN 2</td><td>V+M</td><td>32.29</td><td>12.92</td><td>17.16</td><td>7.86</td><td>17.39</td><td>7.57</td></tr>
+          <tr><td class="is-left">Qwen2.5-Omni</td><td>V+M</td><td>57.36</td><td>14.92</td><td>16.54</td><td>7.42</td><td>21.14</td><td>8.51</td></tr>
+          <tr><td class="is-left">Qwen3-Omni</td><td>V+M</td><td>55.90</td><td>16.14</td><td>15.33</td><td>11.23</td><td>17.70</td><td>8.72</td></tr>
+          <tr><td class="is-left">SAVVY</td><td>V+M+B</td><td>&ndash;</td><td>&ndash;</td><td>54.79</td><td>21.84</td><td>19.36</td><td>13.28</td></tr>
+          <tr><td class="is-left">GPT-Realtime-Mini</td><td>V+M</td><td>32.86</td><td>12.79</td><td>11.62</td><td>14.61</td><td>15.40</td><td>15.93</td></tr>
+          <tr><td class="is-left">Gemini-2.5-Flash-Lite</td><td>V+M</td><td>37.14</td><td>20.58</td><td>19.91</td><td>12.49</td><td>18.96</td><td>7.78</td></tr>
+          <tr class="group-head"><td colspan="8">Fine-tuned models</td></tr>
+          <tr><td class="is-left">Hear You Are LLM</td><td>V+B</td><td>67.84</td><td>151.5</td><td>44.70</td><td>21.50</td><td>22.04</td><td>20.16</td></tr>
+          <tr><td class="is-left">Qwen2.5-Omni</td><td>V+M</td><td>80.61</td><td>13.73</td><td>31.77</td><td>30.79</td><td>26.61</td><td>28.25</td></tr>
+          <tr class="is-ours"><td class="is-left">HLR-LLM (Ours)</td><td>V+M+B</td><td>81.15</td><td>13.94</td><td>79.10</td><td>56.03</td><td>52.22</td><td>45.74</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      Sound event recognition and grounding tasks are reported in accuracy (%); speech recognition is
+      reported in WER (%, lower is better). V, M, and B denote visual input, monaural audio, and
+      binaural audio. Zero-shot AV-LLMs and commercial models show reasonable spatial hearing but
+      remain near chance on direction and distance grounding &mdash; monaural audio with visual input is
+      insufficient for fine-grained spatial localization.
+    </p>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 2.2rem 0 0.8rem;">
+      Spatial relational reasoning and scene captioning
+    </h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th class="is-left" rowspan="2">Model</th>
+            <th rowspan="2">Modality</th>
+            <th colspan="5">Spatial Relational Reasoning (Acc. %)</th>
+            <th colspan="3">Scene Captioning</th>
+          </tr>
+          <tr>
+            <th>Visibility</th>
+            <th>Correspondence</th>
+            <th>Hidden source</th>
+            <th>Loudness</th>
+            <th>Proximity</th>
+            <th>CIDEr-D</th>
+            <th>METEOR</th>
+            <th>SPIDEr</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="is-chance"><td class="is-left">Random chance</td><td>&ndash;</td><td>50.00</td><td>9.49</td><td>20.00</td><td>50.00</td><td>28.68</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td></tr>
+          <tr class="group-head"><td colspan="10">Zero-shot models</td></tr>
+          <tr><td class="is-left">MiniCPM-o-v2.6</td><td>V+M</td><td>75.71</td><td>22.15</td><td>12.80</td><td>46.87</td><td>26.65</td><td>0.071</td><td>0.171</td><td>0.134</td></tr>
+          <tr><td class="is-left">VideoLLaMA2</td><td>V+M</td><td>68.74</td><td>19.79</td><td>21.54</td><td>38.83</td><td>25.52</td><td>0.113</td><td>0.130</td><td>0.079</td></tr>
+          <tr><td class="is-left">Video-SALMONN 2</td><td>V+M</td><td>75.67</td><td>8.23</td><td>21.95</td><td>52.89</td><td>30.27</td><td>0.075</td><td>0.094</td><td>0.073</td></tr>
+          <tr><td class="is-left">Qwen2.5-Omni</td><td>V+M</td><td>72.36</td><td>33.42</td><td>19.51</td><td>51.75</td><td>32.54</td><td>0.319</td><td>0.167</td><td>0.173</td></tr>
+          <tr><td class="is-left">Qwen3-Omni</td><td>V+M</td><td>73.85</td><td>26.18</td><td>23.24</td><td>51.48</td><td>32.02</td><td>0.342</td><td>0.203</td><td>0.258</td></tr>
+          <tr><td class="is-left">GPT-Realtime-Mini</td><td>V+M</td><td>69.47</td><td>13.50</td><td>18.83</td><td>50.10</td><td>25.72</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td></tr>
+          <tr><td class="is-left">Gemini-2.5-Flash-Lite</td><td>V+M</td><td>49.46</td><td>20.74</td><td>14.50</td><td>48.93</td><td>30.99</td><td>0.560</td><td>0.210</td><td>0.212</td></tr>
+          <tr class="group-head"><td colspan="10">Fine-tuned models</td></tr>
+          <tr><td class="is-left">Hear You Are LLM</td><td>V+B</td><td>71.13</td><td>54.93</td><td>44.38</td><td>64.19</td><td>33.47</td><td>4.138</td><td>0.385</td><td>2.399</td></tr>
+          <tr><td class="is-left">Qwen2.5-Omni</td><td>V+M</td><td>62.65</td><td>55.69</td><td>51.01</td><td>68.25</td><td>46.90</td><td>4.751</td><td>0.417</td><td>2.725</td></tr>
+          <tr class="is-ours"><td class="is-left">HLR-LLM (Ours)</td><td>V+M+B</td><td>80.33</td><td>76.30</td><td>72.46</td><td>81.03</td><td>63.84</td><td>4.443</td><td>0.436</td><td>2.907</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      HLR-LLM achieves the best performance across relational reasoning tasks, suggesting that binaural
+      spatial cues complement monaural semantic audio and visual context. For scene captioning, HLR-LLM
+      improves METEOR and SPIDEr over fine-tuned baselines, while Qwen2.5-Omni obtains higher CIDEr-D.
+    </p>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 2.2rem 0 0.8rem;">Ablation study</h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th class="is-left" rowspan="2">Variant</th>
+            <th rowspan="2">Modality</th>
+            <th colspan="2">Egocentric Grounding</th>
+            <th colspan="2">Allocentric Grounding</th>
+            <th colspan="3">Spatial Relational Reasoning</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>Direction</th>
+            <th>Distance</th>
+            <th>Direction</th>
+            <th>Distance</th>
+            <th>Correspondence</th>
+            <th>Hidden source</th>
+            <th>Proximity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group-head"><td colspan="10">Modality ablation</td></tr>
+          <tr><td>(a)</td><td class="is-left">Without vision</td><td>M+B</td><td>74.54</td><td>50.05</td><td>22.66</td><td>26.31</td><td>57.11</td><td>66.53</td><td>35.02</td></tr>
+          <tr><td>(b)</td><td class="is-left">Visual only</td><td>V</td><td>31.29</td><td>20.54</td><td>28.25</td><td>22.45</td><td>26.82</td><td>24.25</td><td>37.81</td></tr>
+          <tr><td>(c)</td><td class="is-left">Without binaural</td><td>V+M</td><td>31.77</td><td>30.79</td><td>26.61</td><td>28.25</td><td>55.69</td><td>51.01</td><td>46.90</td></tr>
+          <tr class="group-head"><td colspan="10">Training ablation</td></tr>
+          <tr><td>(d)</td><td class="is-left">Stage-2 training</td><td>V+M+B</td><td>79.85</td><td>54.39</td><td>49.45</td><td>40.05</td><td>72.84</td><td>72.36</td><td>58.06</td></tr>
+          <tr><td>(e)</td><td class="is-left">Joint training</td><td>V+M+B</td><td>80.08</td><td>56.46</td><td>46.26</td><td>40.57</td><td>74.16</td><td>70.66</td><td>56.51</td></tr>
+          <tr class="is-ours"><td>(f)</td><td class="is-left">HLR-LLM (Ours)</td><td>V+M+B</td><td>79.10</td><td>56.03</td><td>52.22</td><td>45.74</td><td>76.30</td><td>72.46</td><td>63.84</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      All metrics are accuracy (%). Binaural audio supports spatial localization, vision supports
+      object-level grounding, and final-stage CoT tuning improves complex spatial reasoning.
+      Notably, the model without vision still performs relatively well on hidden-source reasoning,
+      suggesting that binaural cues such as direction, distance, and acoustic reflections provide
+      useful evidence about non-visible sources.
+    </p>
+
+    <h3 style="font-size:1.25rem; font-weight:700; margin: 2.2rem 0 0.8rem;">
+      Real-world generalization on STARSS23
+    </h3>
+    <div class="table-wrap">
+      <table class="table is-bordered is-narrow is-fullwidth result-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th class="is-left">Model</th>
+            <th>Pretrain</th>
+            <th>Sound</th>
+            <th>Direction</th>
+            <th>Distance</th>
+            <th>Visibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>(a)</td><td class="is-left">Hear You Are LLM</td><td>&ndash;</td><td>39.63</td><td>15.79</td><td>32.26</td><td>59.51</td></tr>
+          <tr><td>(b)</td><td class="is-left">Hear You Are LLM</td><td>&#10003;</td><td>41.38</td><td>16.30</td><td>26.18</td><td>64.42</td></tr>
+          <tr><td>(c)</td><td class="is-left">HLR-LLM</td><td>&ndash;</td><td>45.70</td><td>16.17</td><td>27.36</td><td>70.26</td></tr>
+          <tr class="is-ours"><td>(d)</td><td class="is-left">HLR-LLM</td><td>&#10003;</td><td>53.97</td><td>29.94</td><td>35.13</td><td>71.60</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="figure-caption">
+      &ldquo;Pretrain&rdquo; denotes HLR-AVSceneQA pretraining before STARSS23 fine-tuning. Sound denotes
+      sound event detection; direction, distance, and visibility are egocentric. All metrics are
+      accuracy (%). HLR-AVSceneQA pretraining improves most evaluated tasks, suggesting that it
+      provides useful spatial priors for adapting to real spatial audio-visual recordings.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ QUALITATIVE ============================ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">Qualitative Comparison</h2>
+    <div class="figure-block">
+      <img src="./static/images/qualitative.png" alt="Qualitative comparison on egocentric grounding and hidden-source reasoning">
+      <p class="figure-caption">
+        <b>Qualitative results.</b> Left: egocentric grounding with a semantically ambiguous scene
+        containing multiple electric blenders, only one of which is sounding. Right: hidden-source
+        reasoning, where the sounding bird is occluded behind the bed. HLR-LLM resolves both cases by
+        combining binaural spatial cues with visual object layout, while baselines relying on monaural
+        audio or vision alone fail.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LIMITATIONS ============================ -->
+<section class="section" style="padding-top: 0;">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">Limitations</h2>
+    <div class="content has-text-justified">
+      <p>
+        HLR-AVSceneQA is built with a simulator-based pipeline, which provides controllable annotations
+        but cannot fully capture the acoustic complexity and visual diversity of the real world. The
+        benchmark focuses on indoor scenes, leaving dynamic agents, moving sound sources, and richer
+        embodied interaction for future work.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ BIBTEX ============================ -->
+<section class="section" id="BibTeX" style="background: #fbfbfd;">
+  <div class="container is-max-desktop">
+    <h2 class="section-title">BibTeX</h2>
+    <!-- TODO: update once the paper has a venue / arXiv ID -->
+    <pre class="bibtex">@inproceedings{hlrllm2026,
+  title     = {Hear, Localize, and Reason: Spatially Aware Scene Understanding
+               for Audio-visual LLMs},
+  author    = {TODO: Author list},
+  booktitle = {TODO: Venue},
+  year      = {2026}
+}</pre>
+  </div>
+</section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="footer">
+  <div class="container is-max-desktop has-text-centered">
+    <div class="content">
+      <p style="font-size: 0.92rem; color: #666;">
+        This website is licensed under a
+        <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+          Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+        The template is borrowed from
+        <a href="https://nerfies.github.io/">Nerfies</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
